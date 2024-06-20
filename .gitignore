@@ -14,3 +14,4 @@ composer.phar
 .phpunit.result.cache
 .php-cs-fixer.cache
 .vscode
+/tests/.env
