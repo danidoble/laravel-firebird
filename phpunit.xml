@@ -15,8 +15,4 @@
             <directory suffix=".php">./src</directory>
         </include>
     </source>
-
-    <php>
-        <env name="TEST_ENV_FILE" value=".env"/>
-    </php>
 </phpunit>
