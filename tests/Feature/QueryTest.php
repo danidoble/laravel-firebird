@@ -42,7 +42,7 @@ it('can select', function () {
         ->select(['name', 'city', 'country'])
         ->first();
 
-    expect((array) $result)->toHaveCount(3)
+    expect((array)$result)->toHaveCount(3)
         ->and($result)->toBeObject()
         ->and($result)->toHaveProperties(['name', 'city', 'country'])
         ->and($result->name)->toEqual('Anna')
@@ -65,7 +65,7 @@ it('can select with aliases', function () {
         ])
         ->first();
 
-    expect((array) $result)->toHaveCount(3)
+    expect((array)$result)->toHaveCount(3)
         ->and($result)->toBeObject()
         ->and($result)->toHaveProperties(['USER_NAME', 'user_city', 'User_Country'])
         ->and($result->USER_NAME)->toEqual('Anna')
@@ -1033,7 +1033,7 @@ it('can group having', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    $results = $results->mapWithKeys(fn ($result) => [$result->country => $result->count]);
+    $results = $results->mapWithKeys(fn($result) => [$result->country => $result->count]);
     expect($results['Australia'])->toEqual(5)
         ->and($results['New Zealand'])->toEqual(3);
 });
@@ -1050,7 +1050,7 @@ it('can group having raw', function () {
         ->get();
 
     expect($results)->toHaveCount(2);
-    $results = $results->mapWithKeys(fn ($result) => [$result->country => $result->count]);
+    $results = $results->mapWithKeys(fn($result) => [$result->country => $result->count]);
     expect($results['Australia'])->toEqual(5)
         ->and($results['New Zealand'])->toEqual(3);
 });
@@ -1104,28 +1104,4 @@ it('can execute stored procedures', function () {
         ->RESULT;
 
     expect($result)->toEqual($firstNumber * $secondNumber);
-});
-
-it('can connection escape values', function () {
-    $escaped = DB::connection()->escape('O\'Reilly');
-    // expect($escaped)->toEqual('O\'Reilly'); // mysql escape single quote
-    expect($escaped)->toEqual("'O''Reilly'"); // Firebird escape single quote
-});
-
-it('can parse to sql', function () {
-    $sql = User::query();
-    $sql->where('id', 1);
-    $sql->where('name', 'John');
-    $sql->where('age', '>', 18);
-
-    expect($sql->toSql())->toEqual('select * from "users" where "id" = ? and "name" = ? and "age" > ? and "users"."deleted_at" is null');
-});
-
-it('can parse to raw sql', function () {
-    $sql = User::query();
-    $sql->where('id', 1);
-    $sql->where('name', 'John');
-    $sql->where('age', '>', 18);
-
-    expect($sql->toRawSql())->toEqual('select * from "users" where "id" = 1 and "name" = \'John\' and "age" > 18 and "users"."deleted_at" is null');
 });

@@ -14,8 +14,6 @@ use Illuminate\Database\Grammar;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Collection;
 
-use function method_exists;
-
 class FirebirdConnection extends DatabaseConnection
 {
     /**
@@ -23,12 +21,7 @@ class FirebirdConnection extends DatabaseConnection
      */
     protected function getDefaultQueryGrammar(): FirebirdQueryGrammar
     {
-        $grammar = new FirebirdQueryGrammar;
-        if (method_exists($grammar, 'setConnection')) {
-            $grammar->setConnection($this);
-        }
-
-        return $grammar;
+        return new FirebirdQueryGrammar;
     }
 
     /**
@@ -56,12 +49,7 @@ class FirebirdConnection extends DatabaseConnection
      */
     protected function getDefaultSchemaGrammar(): Grammar
     {
-        $grammar = new FirebirdSchemaGrammar;
-        if (method_exists($grammar, 'setConnection')) {
-            $grammar->setConnection($this);
-        }
-
-        return $this->withTablePrefix($grammar);
+        return $this->withTablePrefix(new FirebirdSchemaGrammar);
     }
 
     /**
