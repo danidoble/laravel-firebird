@@ -10,37 +10,45 @@ use Danidoble\Firebird\Query\Processors\FirebirdProcessor as FirebirdQueryProces
 use Danidoble\Firebird\Schema\Builder as FirebirdSchemaBuilder;
 use Danidoble\Firebird\Schema\Grammars\FirebirdGrammar as FirebirdSchemaGrammar;
 use Illuminate\Database\Connection as DatabaseConnection;
-use Illuminate\Database\Grammar;
+use Illuminate\Database\Query\Grammars\Grammar;
+use Illuminate\Database\Query\Processors\Processor;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Collection;
-
-use function method_exists;
+use Illuminate\Support\Str;
+use PDO;
 
 class FirebirdConnection extends DatabaseConnection
 {
     /**
+     * Get the server version for the connection.
+     */
+    public function getServerVersion(): string
+    {
+        $version = $this->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION);
+
+        return Str::match('/(?<=LI-V)\d+\.\d+\.\d+/', $version);
+    }
+
+    /**
      * Get the default query grammar instance.
      */
-    protected function getDefaultQueryGrammar(): FirebirdQueryGrammar
+    protected function getDefaultQueryGrammar(): Grammar|FirebirdQueryGrammar
     {
-        $grammar = new FirebirdQueryGrammar;
-        if (method_exists($grammar, 'setConnection')) {
-            $grammar->setConnection($this);
-        }
+        ($grammar = new FirebirdQueryGrammar)->setConnection($this);
 
-        return $grammar;
+        return $this->withTablePrefix($grammar);
     }
 
     /**
      * Get the default post processor instance.
      */
-    protected function getDefaultPostProcessor(): FirebirdQueryProcessor
+    protected function getDefaultPostProcessor(): Processor|FirebirdQueryProcessor
     {
         return new FirebirdQueryProcessor;
     }
 
     /**
-     * Get a schema builder instance for this connection.
+     * Get a schema builder instance for the connection.
      */
     public function getSchemaBuilder(): Builder|FirebirdSchemaBuilder
     {
@@ -54,12 +62,9 @@ class FirebirdConnection extends DatabaseConnection
     /**
      * Get the default schema grammar instance.
      */
-    protected function getDefaultSchemaGrammar(): Grammar
+    protected function getDefaultSchemaGrammar(): null|\Illuminate\Database\Schema\Grammars\Grammar|FirebirdSchemaGrammar
     {
-        $grammar = new FirebirdSchemaGrammar;
-        if (method_exists($grammar, 'setConnection')) {
-            $grammar->setConnection($this);
-        }
+        ($grammar = new FirebirdSchemaGrammar)->setConnection($this);
 
         return $this->withTablePrefix($grammar);
     }
@@ -67,7 +72,7 @@ class FirebirdConnection extends DatabaseConnection
     /**
      * Get a new query builder instance.
      */
-    public function query(): FirebirdQueryBuilder
+    public function query(): FirebirdQueryBuilder|\Illuminate\Database\Query\Builder
     {
         return new FirebirdQueryBuilder(
             $this, $this->getQueryGrammar(), $this->getPostProcessor()
@@ -77,8 +82,8 @@ class FirebirdConnection extends DatabaseConnection
     /**
      * Execute a stored procedure.
      */
-    public function executeProcedure(string $procedure, array $values = []): Collection
+    public function executeProcedure(string $procedure, array $bindings = []): Collection
     {
-        return $this->query()->fromProcedure($procedure, $values)->get();
+        return $this->query()->procedure($procedure, $bindings)->get();
     }
 }

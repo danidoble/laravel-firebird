@@ -18,11 +18,11 @@ class FirebirdConnector extends Connector implements ConnectorInterface
      */
     public function connect(array $config): PDO
     {
-        return $this->createConnection(
-            $this->getDsn($config),
-            $config,
-            $this->getOptions($config)
-        );
+        $dsn = $this->getDsn($config);
+
+        $options = $this->getOptions($config);
+
+        return $this->createConnection($dsn, $config, $options);
     }
 
     /**
@@ -30,28 +30,26 @@ class FirebirdConnector extends Connector implements ConnectorInterface
      */
     protected function getDsn(array $config): string
     {
-        extract($config);
-
-        if (! isset($host) || ! isset($database)) {
+        if (! isset($config['host']) || ! isset($config['database'])) {
             trigger_error('Cannot connect to Firebird Database, no host or database supplied');
 
             return '';
         }
 
-        $dsn = "firebird:dbname=$host";
+        $dsn = "firebird:dbname={$config['host']}";
 
-        if (isset($port)) {
-            $dsn .= "/$port";
+        if (isset($config['port'])) {
+            $dsn .= "/{$config['port']}";
         }
 
-        $dsn .= ":$database;";
+        $dsn .= ":{$config['database']};";
 
-        if (isset($role)) {
-            $dsn .= "role=$role;";
+        if (isset($config['role'])) {
+            $dsn .= "role={$config['role']};";
         }
 
-        if (isset($charset)) {
-            $dsn .= "charset=$charset;";
+        if (isset($config['charset'])) {
+            $dsn .= "charset={$config['charset']};";
         }
 
         return $dsn;

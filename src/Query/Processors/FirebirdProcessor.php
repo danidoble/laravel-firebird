@@ -11,10 +11,8 @@ class FirebirdProcessor extends Processor
     /**
      * Process the results of a column listing query.
      */
-    public function processColumnListing($results): array
+    public function processColumnListing(array $results): array
     {
-        return array_map(function ($result) {
-            return ((object) $result)->column_name;
-        }, $results);
+        return array_map(fn ($result) => ((object) $result)->column_name, $results);
     }
 }

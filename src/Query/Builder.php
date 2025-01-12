@@ -17,20 +17,29 @@ class Builder extends QueryBuilder
     }
 
     /**
-     * Add a from stored procedure clause to the query builder.
+     * Set the stored procedure which the query is targeting.
+     *
+     * @return QueryBuilder|Builder
      */
-    public function fromProcedure(string $procedure, array $values = []): QueryBuilder|static
+    public function procedure(string $procedure, array $bindings = []): QueryBuilder|static
     {
-        $compiledProcedure = $this->grammar->compileProcedure($this, $procedure, $values);
+        $expression = $this->grammar->compileProcedure($this, $procedure, $bindings);
 
-        // Remove any expressions from the values array, as they will have
-        // already been evaluated by the grammar's parameterize() function.
-        $values = array_filter($values, function ($value) {
-            return ! $this->grammar->isExpression($value);
-        });
-
-        $this->fromRaw($compiledProcedure, array_values($values));
+        $this->fromRaw($expression, $this->cleanBindings($bindings));
 
         return $this;
+    }
+
+    /**
+     * Alias to set the stored procedure which the query is targeting.
+     *
+     * @return Builder|QueryBuilder
+     *
+     * @deprecated This method is deprecated and will be removed in a future
+     * release. Use the `procedure` method instead.
+     */
+    public function fromProcedure(string $procedure, array $bindings = []): Builder|QueryBuilder|static
+    {
+        return $this->procedure($procedure, $bindings);
     }
 }

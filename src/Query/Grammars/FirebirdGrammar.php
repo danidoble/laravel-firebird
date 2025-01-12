@@ -6,7 +6,9 @@ namespace Danidoble\Firebird\Query\Grammars;
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
+use Illuminate\Database\Query\JoinLateralClause;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class FirebirdGrammar extends Grammar
 {
@@ -24,8 +26,8 @@ class FirebirdGrammar extends Grammar
         'groups',
         'havings',
         'orders',
-        // 'limit', - Handled in the compileColumns() method.
-        // 'offset', - Handled in the compileColumns() method.
+        'offset',
+        'limit',
         'lock',
     ];
 
@@ -38,40 +40,44 @@ class FirebirdGrammar extends Grammar
      */
     protected $operators = [
         '=', '<', '>', '<=', '>=', '<>', '!=',
+        '!<', '!>', '~<', '~>', '^<', '^>', '~=', '^=',
         'like', 'not like', 'between', 'not between',
         'containing', 'not containing', 'starting with', 'not starting with',
         'similar to', 'not similar to', 'is distinct from', 'is not distinct from',
     ];
 
     /**
+     * Compile the "select *" portion of the query.
+     *
      * @param  array  $columns
-     * @return string|null
      */
-    protected function compileColumns(Builder $query, $columns)
+    protected function compileColumns(Builder $query, $columns): ?string
     {
         // See superclass.
         if (! is_null($query->aggregate)) {
             return null;
         }
 
-        // In Firebird, the correct syntax for limiting and offsetting rows is
-        // "select first [num_rows] skip [start_row] * from table". Laravel does
-        // not support adding components between the "select" keyword and the
-        // column names, so compile the limit and offset components here. Note
-        // that they are commented out in the $selectComponents class variable.
-        // Reference: http://mc-computing.com/Databases/Firebird/SQL.html
-
         $select = 'select ';
 
-        if ($query->limit) {
-            $select .= $this->compileLimit($query, $query->limit).' ';
+        // Before Firebird v3, the syntax used to limit and offset rows is
+        // "select first [int] skip [int] * from table". Laravel's query builder
+        // doesn't natively support inserting components between "select" and
+        // the column names, so compile the limit and offset here.
+
+        if (isset($query->limit) && $usesLegacyLimitAndOffset ??= $this->usesLegacyLimitAndOffset()) {
+            $select .= $this->compileLegacyLimit($query, $query->limit).' ';
         }
 
-        if ($query->offset) {
-            $select .= $this->compileOffset($query, $query->offset).' ';
+        if (isset($query->offset) && $usesLegacyLimitAndOffset ??= $this->usesLegacyLimitAndOffset()) {
+            $select .= $this->compileLegacyOffset($query, $query->offset).' ';
         }
 
         if ($query->distinct) {
+            if (is_array($query->distinct)) {
+                throw new RuntimeException('This database engine does not support distinct on specific columns.');
+            }
+
             $select .= 'distinct ';
         }
 
@@ -85,6 +91,18 @@ class FirebirdGrammar extends Grammar
      */
     protected function compileLimit(Builder $query, $limit): string
     {
+        if ($this->usesLegacyLimitAndOffset()) {
+            return '';
+        }
+
+        return 'fetch first '.(int) $limit.' rows only';
+    }
+
+    /**
+     * Compile the "limit" portions of the query for legacy versions of Firebird.
+     */
+    protected function compileLegacyLimit(Builder $query, int|string $limit): string
+    {
         return 'first '.(int) $limit;
     }
 
@@ -94,6 +112,18 @@ class FirebirdGrammar extends Grammar
      * @param  int  $offset
      */
     protected function compileOffset(Builder $query, $offset): string
+    {
+        if ($this->usesLegacyLimitAndOffset()) {
+            return '';
+        }
+
+        return 'offset '.(int) $offset.' rows';
+    }
+
+    /**
+     * Compile the "offset" portions of the query for legacy versions of Firebird.
+     */
+    protected function compileLegacyOffset(Builder $query, int|string $offset): string
     {
         return 'skip '.(int) $offset;
     }
@@ -105,17 +135,53 @@ class FirebirdGrammar extends Grammar
      */
     public function compileRandom($seed): string
     {
-        return 'RAND()';
+        return 'rand()';
     }
 
     /**
-     * Wrap a union sub query in parentheses.
+     * Wrap a union subquery in parentheses.
      *
      * @param  string  $sql
      */
     protected function wrapUnion($sql): string
     {
-        return $sql;
+        return 'select * from ('.$sql.')';
+    }
+
+    /**
+     * Compile the "union" queries attached to the main query.
+     */
+    protected function compileUnions(Builder $query): string
+    {
+        $sql = '';
+
+        foreach ($query->unions as $union) {
+            $sql .= $this->compileUnion($union);
+        }
+
+        if (! empty($query->unionOrders)) {
+            $sql .= ' '.$this->compileOrders($query, $query->unionOrders);
+        }
+
+        // Swap the default order of limit and offset for union queries.
+
+        if (isset($query->unionOffset)) {
+            if ($usesLegacyLimitAndOffset ??= $this->usesLegacyLimitAndOffset()) {
+                throw new RuntimeException('This database engine does not support offset on union queries.');
+            }
+
+            $sql .= ' '.$this->compileOffset($query, $query->unionOffset);
+        }
+
+        if (isset($query->unionLimit)) {
+            if ($usesLegacyLimitAndOffset ?? $this->usesLegacyLimitAndOffset()) {
+                throw new RuntimeException('This database engine does not support limit on union queries.');
+            }
+
+            $sql .= ' '.$this->compileLimit($query, $query->unionLimit);
+        }
+
+        return ltrim($sql);
     }
 
     /**
@@ -126,15 +192,19 @@ class FirebirdGrammar extends Grammar
      */
     protected function dateBasedWhere($type, Builder $query, $where): string
     {
-        $value = $this->parameter($where['value']);
+        $condition = ($type === 'date' || $type === 'time')
+            ? 'cast('.$this->wrap($where['column']).' as '.$type.') '
+            : 'extract('.$type.' from '.$this->wrap($where['column']).') ';
 
-        return 'EXTRACT('.$type.' FROM '.$this->wrap($where['column']).') '.$where['operator'].' '.$value;
+        $condition .= $where['operator'].' '.$this->parameter($where['value']);
+
+        return $condition;
     }
 
     /**
-     * Compile SQL statement for a stored procedure.
+     * Compile the select clause for a stored procedure.
      */
-    public function compileProcedure(Builder $query, string $procedure, ?array $values = null): string
+    public function compileProcedure(Builder $query, string $procedure, array $values = []): string
     {
         $procedure = $this->wrap($procedure);
 
@@ -156,12 +226,28 @@ class FirebirdGrammar extends Grammar
         );
     }
 
-    public function whereDate(Builder $query, $where)
+    /**
+     * Compile a "lateral join" clause.
+     */
+    public function compileJoinLateral(JoinLateralClause $join, string $expression): string
+    {
+        return trim("{$join->type} join lateral {$expression} on true");
+    }
+
+    /**
+     * Determine if the database uses the legacy limit and offset syntax.
+     */
+    protected function usesLegacyLimitAndOffset(): bool
+    {
+        return version_compare($this->connection->getServerVersion(), '3.0.0', '<');
+    }
+
+    public function whereDate(Builder $query, $where): string
     {
         return $this->dateBasedWhere('YEAR', $query, $where);
     }
 
-    public function whereTime(Builder $query, $where)
+    public function whereTime(Builder $query, $where): string
     {
         return $this->dateBasedWhere('HOUR', $query, $where);
     }

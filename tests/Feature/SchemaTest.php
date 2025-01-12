@@ -75,3 +75,16 @@ it('can drop table if exists', function () {
 
     expect(Schema::hasTable('foo'))->toBeFalse();
 });
+
+it('has view', function () {
+
+    if (version_compare(app()->version(), '10.34.0', '<')) {
+        $this->markTestSkipped('The hasView method is only available in Laravel 10.34.0 and above.');
+    }
+
+    $this->createViews();
+
+    expect(Schema::hasView('view_all_users'))->toBeTrue()
+        ->and(Schema::hasView(uniqid('view_')))->toBeFalse();
+
+});

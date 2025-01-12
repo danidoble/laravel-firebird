@@ -11,6 +11,9 @@ use Illuminate\Support\ServiceProvider;
 
 final class FirebirdServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
     public function register(): void
     {
         Connection::resolverFor('firebird', function ($connection, $database, $tablePrefix, $config) {

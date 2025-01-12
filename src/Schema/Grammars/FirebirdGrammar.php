@@ -24,11 +24,46 @@ class FirebirdGrammar extends Grammar
     protected array $serials = ['bigInteger', 'integer', 'mediumInteger', 'smallInteger', 'tinyInteger'];
 
     /**
+     * Compile the query to determine the tables.
+     */
+    public function compileTables(): string
+    {
+        return 'select trim(trailing from rdb$relation_name) as "name" '
+            .'from rdb$relations '
+            .'where rdb$relation_type = 0 '
+            .'and (rdb$system_flag is null or rdb$system_flag = 0) '
+            .'order by rdb$relation_name';
+    }
+
+    /**
      * Compile the query to determine if a table exists.
      */
     public function compileTableExists(): string
     {
         return 'select rdb$relation_name from rdb$relations where rdb$relation_name = ?';
+    }
+
+    /**
+     * Compile the query to determine the views.
+     */
+    public function compileViews(): string
+    {
+        return 'select trim(trailing from rdb$relation_name) as "name", '
+            .'rdb$view_source as "definition" '
+            .'from rdb$relations '
+            .'where rdb$view_blr is not null '
+            .'and (rdb$system_flag is null or rdb$system_flag = 0)';
+    }
+
+    /**
+     * Compile the query to determine the columns.
+     */
+    public function compileColumns(string $table): string
+    {
+        return 'select trim(trailing from rdb$field_name) as "name" '
+            .'from rdb$relation_fields '
+            .'where rdb$relation_name = '.$this->quoteString($table).' '
+            .'order by rdb$relation_name';
     }
 
     /**
@@ -173,33 +208,15 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Compile the query to determine the tables.
-     */
-    public function compileTables(): string
-    {
-        return 'select trim(rdb$relation_name) as "name" from rdb$relations where rdb$system_flag = 0';
-    }
-
-    /**
-     * Compile the query to determine the columns.
-     *
-     * @param  string  $table  The table name.
-     */
-    public function compileColumns(string $table): string
-    {
-        return "select trim(rdb\$field_name) as \"name\" from rdb\$relation_fields where rdb\$relation_name = '$table'";
-    }
-
-    /**
      * Get the SQL for a character set column modifier.
      */
     protected function modifyCharset(Blueprint $blueprint, Fluent $column): ?string
     {
-        if (is_null($column->charset)) {
-            return null;
+        if (! is_null($column->charset)) {
+            return ' CHARACTER SET '.$column->charset;
         }
 
-        return ' CHARACTER SET '.$column->charset;
+        return null;
     }
 
     /**
@@ -207,11 +224,11 @@ class FirebirdGrammar extends Grammar
      */
     protected function modifyCollate(Blueprint $blueprint, Fluent $column): ?string
     {
-        if (is_null($column->collation)) {
-            return null;
+        if (! is_null($column->collation)) {
+            return ' COLLATE '.$column->collation;
         }
 
-        return ' COLLATE '.$column->collation;
+        return null;
     }
 
     /**
@@ -227,11 +244,11 @@ class FirebirdGrammar extends Grammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column): ?string
     {
-        if (is_null($column->default)) {
-            return null;
+        if (! is_null($column->default)) {
+            return ' DEFAULT '.$this->getDefaultValue($column->default);
         }
 
-        return ' DEFAULT '.$this->getDefaultValue($column->default);
+        return null;
     }
 
     /**
@@ -347,7 +364,7 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for an enum type.
+     * Create the column definition for an enumeration type.
      */
     protected function typeEnum(Fluent $column): string
     {
@@ -355,7 +372,7 @@ class FirebirdGrammar extends Grammar
             return "'".$a."'";
         }, $column->allowed);
 
-        return "VARCHAR(255) CHECK (\"{$column->name}\" IN (".implode(', ', $allowed).'))';
+        return "VARCHAR(255) CHECK (\"$column->name\" IN (".implode(', ', $allowed).'))';
     }
 
     /**
@@ -391,7 +408,7 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a date-time type.
+     * Create the column definition for a date-time (with time zone) type.
      */
     protected function typeDateTimeTz(Fluent $column): string
     {
@@ -408,7 +425,7 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a time type.
+     * Create the column definition for a time (with time zone) type.
      */
     protected function typeTimeTz(Fluent $column): string
     {
@@ -429,7 +446,7 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a timestamp type.
+     * Create the column definition for a timestamp (with time zone) type.
      */
     protected function typeTimestampTz(Fluent $column): string
     {
@@ -446,7 +463,7 @@ class FirebirdGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for an uuid type.
+     * Create the column definition for a uuid type.
      */
     protected function typeUuid(Fluent $column): string
     {
