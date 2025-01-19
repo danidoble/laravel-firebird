@@ -64,7 +64,7 @@
   },
   "scripts": {
     "lint": [
-      "@php vendor/bin/phpstan analyse src tests"
+      "@php vendor/bin/phpstan analyze -c phpstan.neon"
     ],
     "pint": [
       "@php vendor/bin/pint"
