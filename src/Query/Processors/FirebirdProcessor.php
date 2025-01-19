@@ -10,8 +10,13 @@ class FirebirdProcessor extends Processor
 {
     /**
      * Process the results of a column listing query.
+     *
+     * @deprecated Will be removed in a future Laravel version.
+     *
+     * @param  array  $results
+     * @return array
      */
-    public function processColumnListing(array $results): array
+    public function processColumnListing($results): array
     {
         return array_map(fn ($result) => ((object) $result)->column_name, $results);
     }

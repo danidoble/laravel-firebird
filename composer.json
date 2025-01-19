@@ -1,88 +1,79 @@
 {
-    "name": "danidoble/laravel-firebird",
-    "description": "Firebird database driver for Laravel Framework",
-    "type": "library",
-    "license": "MIT",
-    "keywords": [
-        "laravel firebird",
-        "package",
-        "danidoble"
-    ],
-    "authors": [
-        {
-            "name": "Danidoble",
-            "email": "ddanidoble@gmail.com",
-            "role": "Developer",
-            "homepage": "https://danidoble.com"
-        }
-    ],
-    "require": {
-        "php": "^8.1",
-        "ext-pdo": "*",
-        "illuminate/support": "^10.0|^11.0",
-        "illuminate/container": "^10.0|^11.0",
-        "illuminate/database": "^10.0|^11.0",
-        "illuminate/events": "^10.0|^11.0"
-    },
-    "require-dev": {
-        "laravel/pint": "^1.14",
-        "orchestra/testbench": "^8.21|^v9.0.0",
-        "pestphp/pest": "^2.34"
-    },
-    "autoload": {
-        "psr-4": {
-            "Danidoble\\Firebird\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Danidoble\\Firebird\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
-        }
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Danidoble\\Firebird\\Providers\\FirebirdServiceProvider"
-            ]
-        }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
-    "config": {
-        "sort-packages": true,
-        "preferred-install": "dist",
-        "optimize-autoloader": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true
-        }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "@clear",
-            "@prepare"
-        ],
-        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
-        "prepare": "@php vendor/bin/testbench package:discover --ansi",
-        "build": "@php vendor/bin/testbench workbench:build --ansi",
-        "serve": [
-            "Composer\\Config::disableProcessTimeout",
-            "@build",
-            "@php vendor/bin/testbench serve"
-        ],
-        "lint": [
-            "@php vendor/bin/phpstan analyse src tests"
-        ],
-        "pint": [
-            "@php vendor/bin/pint"
-        ],
-        "test": [
-            "@php vendor/bin/pest"
-        ],
-        "pest": [
-            "@php vendor/bin/pest"
-        ]
+  "name": "danidoble/laravel-firebird",
+  "description": "Firebird database driver for Laravel Framework",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "laravel firebird",
+    "package",
+    "danidoble"
+  ],
+  "authors": [
+    {
+      "name": "Danidoble",
+      "email": "ddanidoble@gmail.com",
+      "role": "Developer",
+      "homepage": "https://danidoble.com"
     }
+  ],
+  "require": {
+    "php": "^8.1|^8.2|^8.3|^8.4",
+    "ext-pdo": "*",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/container": "^10.0|^11.0",
+    "illuminate/database": "^10.0|^11.0",
+    "illuminate/events": "^10.0|^11.0"
+  },
+  "require-dev": {
+    "laravel/pint": "^1.20",
+    "orchestra/testbench": "^8.31|^9.0.0",
+    "pestphp/pest": "^2.34|^3.0",
+    "phpstan/phpstan": "^2.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Danidoble\\Firebird\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Danidoble\\Firebird\\Tests\\": "tests/"
+    }
+  },
+  "archive": {
+    "exclude": [
+      "/tests"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Danidoble\\Firebird\\Providers\\FirebirdServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true,
+    "preferred-install": "dist",
+    "optimize-autoloader": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "scripts": {
+    "lint": [
+      "@php vendor/bin/phpstan analyse src tests"
+    ],
+    "pint": [
+      "@php vendor/bin/pint"
+    ],
+    "test": [
+      "@php vendor/bin/pest"
+    ],
+    "pest": [
+      "@php vendor/bin/pest"
+    ]
+  }
 }

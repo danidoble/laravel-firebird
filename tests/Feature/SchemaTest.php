@@ -79,9 +79,11 @@ it('can drop table if exists', function () {
 it('has view', function () {
 
     if (version_compare(app()->version(), '10.34.0', '<')) {
+        // @phpstan-ignore-next-line
         $this->markTestSkipped('The hasView method is only available in Laravel 10.34.0 and above.');
     }
 
+    // @phpstan-ignore-next-line
     $this->createViews();
 
     expect(Schema::hasView('view_all_users'))->toBeTrue()

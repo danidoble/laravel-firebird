@@ -15,3 +15,4 @@ composer.phar
 .php-cs-fixer.cache
 .vscode
 /tests/.env
+/bin
