@@ -13,14 +13,29 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         php: [ 8.1, 8.2, 8.3, 8.4 ]
+        laravel: ['10.*', '11.*', '12.*']
+        stability: [prefer-lowest, prefer-stable]
         firebird: [v5.0, v4.0, v3.0, v2.5.9-sc]
+        include:
+          - laravel: 10.*
+            testbench: ^8.0
+          - laravel: 11.*
+            testbench: ^9.0
+          - laravel: 12.*
+            testbench: ^10.0
+        exclude:
+          - laravel: 11.*
+            php: 8.1
+          - laravel: 12.*
+            php: 8.1
 
-    name: Tests on PHP ${{ matrix.php }} - Firebird ${{ matrix.firebird }} - ${{ matrix.stability }}
+    name: PHP ${{ matrix.php }}, Laravel ${{ matrix.laravel }}, Firebird ${{ matrix.firebird }}, ${{ matrix.stability }}
 
     services:
       firebird:
@@ -40,24 +55,14 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo, pdo_firebird
+          extensions: pdo_firebird
           tools: composer:v2, phpstan
           coverage: none
 
       - name: Install Dependencies
-        run: composer install -q --no-ansi --no-interaction --no-scripts --no-suggest --no-progress --prefer-dist
-
-      - name: Get Composer cache directory
-        id: composer-cache
-        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+        run: |
+          composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
       - name: Lint composer.json
         run: composer validate

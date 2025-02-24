@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Danidoble\Firebird\Schema\Grammars;
 
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Support\Fluent;
@@ -26,7 +27,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine the tables.
      */
-    public function compileTables(): string
+    public function compileTables($schema): string
     {
         return 'select trim(trailing from rdb$relation_name) as "name" '
             .'from rdb$relations '
@@ -38,7 +39,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine if a table exists.
      */
-    public function compileTableExists(): string
+    public function compileTableExists($schema, $table): string
     {
         return 'select rdb$relation_name from rdb$relations where rdb$relation_name = ?';
     }
@@ -46,7 +47,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine the views.
      */
-    public function compileViews(): string
+    public function compileViews($schema): string
     {
         return 'select trim(trailing from rdb$relation_name) as "name", '
             .'rdb$view_source as "definition" '
@@ -58,7 +59,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine the columns.
      */
-    public function compileColumns(string $table): string
+    public function compileColumns($schema, $table): string
     {
         return 'select trim(trailing from rdb$field_name) as "name" '
             .'from rdb$relation_fields '
@@ -77,7 +78,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a create table command.
      */
-    public function compileCreate(Blueprint $blueprint, Fluent $command): string
+    public function compileCreate(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         if ($blueprint->temporary) {
             throw new LogicException('This database driver does not support temporary tables.');
@@ -91,7 +92,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a drop table command.
      */
-    public function compileDrop(Blueprint $blueprint, Fluent $command): string
+    public function compileDrop(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         return 'drop table '.$this->wrapTable($blueprint);
     }
@@ -99,14 +100,14 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a drop table (if exists) command.
      */
-    public function compileDropIfExists(Blueprint $blueprint, Fluent $command): string
+    public function compileDropIfExists(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         // Replace the double quotes with single quotes.
         $table = str_replace('"', "'", $this->wrapTable($blueprint));
 
         return sprintf(
             "execute block as begin if (exists(%s)) then execute statement '%s'; end",
-            str_replace('?', $table, $this->compileTableExists()), // Replace the ? character with the table name.
+            str_replace('?', $table, $this->compileTableExists(null, null)), // Replace the ? character with the table name.
             $this->compileDrop($blueprint, $command)
         );
     }
@@ -114,7 +115,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a column addition command.
      */
-    public function compileAdd(Blueprint $blueprint, Fluent $command): string
+    public function compileAdd(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $table = $this->wrapTable($blueprint);
 
@@ -126,7 +127,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a primary key command.
      */
-    public function compilePrimary(Blueprint $blueprint, Fluent $command): string
+    public function compilePrimary(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $columns = $this->columnize($command->columns);
 
@@ -136,7 +137,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a unique key command.
      */
-    public function compileUnique(Blueprint $blueprint, Fluent $command): string
+    public function compileUnique(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $table = $this->wrapTable($blueprint);
 
@@ -150,7 +151,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a plain index key command.
      */
-    public function compileIndex(Blueprint $blueprint, Fluent $command): string
+    public function compileIndex(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $columns = $this->columnize($command->columns);
 
@@ -164,7 +165,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a foreign key command.
      */
-    public function compileForeign(Blueprint $blueprint, Fluent $command): string
+    public function compileForeign(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $table = $this->wrapTable($blueprint);
 
@@ -200,7 +201,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a drop foreign key command.
      */
-    public function compileDropForeign(Blueprint $blueprint, Fluent $command): string
+    public function compileDropForeign(Blueprint|Expression|string $blueprint, Fluent $command): string
     {
         $table = $this->wrapTable($blueprint);
 
@@ -210,7 +211,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Get the SQL for a character set column modifier.
      */
-    protected function modifyCharset(Blueprint $blueprint, Fluent $column): ?string
+    protected function modifyCharset(Blueprint|Expression|string $blueprint, Fluent $column): ?string
     {
         if (! is_null($column->charset)) {
             return ' CHARACTER SET '.$column->charset;
@@ -222,7 +223,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Get the SQL for a collation column modifier.
      */
-    protected function modifyCollate(Blueprint $blueprint, Fluent $column): ?string
+    protected function modifyCollate(Blueprint|Expression|string $blueprint, Fluent $column): ?string
     {
         if (! is_null($column->collation)) {
             return ' COLLATE '.$column->collation;
@@ -234,7 +235,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Get the SQL for a nullable column modifier.
      */
-    protected function modifyNullable(Blueprint $blueprint, Fluent $column): ?string
+    protected function modifyNullable(Blueprint|Expression|string $blueprint, Fluent $column): ?string
     {
         return $column->nullable ? '' : ' NOT NULL';
     }
@@ -242,7 +243,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Get the SQL for a default column modifier.
      */
-    protected function modifyDefault(Blueprint $blueprint, Fluent $column): ?string
+    protected function modifyDefault(Blueprint|Expression|string $blueprint, Fluent $column): ?string
     {
         if (! is_null($column->default)) {
             return ' DEFAULT '.$this->getDefaultValue($column->default);
