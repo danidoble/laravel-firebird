@@ -14,7 +14,6 @@ class FirebirdProcessor extends Processor
      * @deprecated Will be removed in a future Laravel version.
      *
      * @param  array  $results
-     * @return array
      */
     public function processColumnListing($results): array
     {

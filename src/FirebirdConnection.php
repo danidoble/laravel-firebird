@@ -16,6 +16,8 @@ use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use PDO;
+use ReflectionClass;
+use ReflectionException;
 
 class FirebirdConnection extends DatabaseConnection
 {
@@ -31,13 +33,21 @@ class FirebirdConnection extends DatabaseConnection
 
     /**
      * Get the default query grammar instance.
+     *
+     * @throws ReflectionException
      */
     protected function getDefaultQueryGrammar(): Grammar|FirebirdQueryGrammar
     {
-        $grammar = new FirebirdQueryGrammar($this);
-        $grammar = $grammar->setConnection($this);
+        $grammar = $this->safeConstruct(FirebirdQueryGrammar::class, $this);
+        // $grammar = new FirebirdQueryGrammar($this);
+        if (method_exists($grammar, 'setConnection')) {
+            $grammar = $grammar->setConnection($this);
+        }
+        if (method_exists($this, 'withTablePrefix')) {
+            return $this->withTablePrefix($grammar);
+        }
 
-        return $this->withTablePrefix($grammar);
+        return $grammar;
     }
 
     /**
@@ -62,13 +72,21 @@ class FirebirdConnection extends DatabaseConnection
 
     /**
      * Get the default schema grammar instance.
+     *
+     * @throws ReflectionException
      */
     protected function getDefaultSchemaGrammar(): null|\Illuminate\Database\Schema\Grammars\Grammar|FirebirdSchemaGrammar
     {
-        $grammar = new FirebirdSchemaGrammar($this);
-        $grammar = $grammar->setConnection($this);
+        $grammar = $this->safeConstruct(FirebirdSchemaGrammar::class, $this);
+        // $grammar = new FirebirdSchemaGrammar($this);
+        if (method_exists($grammar, 'setConnection')) {
+            $grammar = $grammar->setConnection($this);
+        }
+        if (method_exists($this, 'withTablePrefix')) {
+            return $this->withTablePrefix($grammar);
+        }
 
-        return $this->withTablePrefix($grammar);
+        return $grammar;
     }
 
     /**
@@ -87,5 +105,20 @@ class FirebirdConnection extends DatabaseConnection
     public function executeProcedure(string $procedure, array $bindings = []): Collection
     {
         return $this->query()->procedure($procedure, $bindings)->get();
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    protected function safeConstruct(string $className, mixed ...$args)
+    {
+        $ref = new ReflectionClass($className);
+        $ctor = $ref->getConstructor();
+
+        if ($ctor && $ctor->getNumberOfParameters() > 0) {
+            return $ref->newInstanceArgs($args);
+        }
+
+        return $ref->newInstance();
     }
 }
