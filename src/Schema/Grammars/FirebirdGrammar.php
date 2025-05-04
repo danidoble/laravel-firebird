@@ -7,6 +7,7 @@ namespace Danidoble\Firebird\Schema\Grammars;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\Grammars\Grammar;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Fluent;
 use LogicException;
 
@@ -41,6 +42,9 @@ class FirebirdGrammar extends Grammar
      */
     public function compileTableExists($schema, $table): string
     {
+        if(App::version() < 12){
+            $table = $schema;
+        }
         $table = str_replace('"', "'", $this->wrapTable($table));
 
         return 'select rdb$relation_name from rdb$relations where rdb$relation_name = '.$table;
@@ -63,6 +67,9 @@ class FirebirdGrammar extends Grammar
      */
     public function compileColumns($schema = null, $table = null): string
     {
+        if(App::version() < 12){
+            $table = $schema;
+        }
         return 'select trim(trailing from rdb$field_name) as "name" '
             .'from rdb$relation_fields '
             .'where rdb$relation_name = '.$this->quoteString($table).' '

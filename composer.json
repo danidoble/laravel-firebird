@@ -74,6 +74,9 @@
     ],
     "pest": [
       "@php vendor/bin/pest"
+    ],
+    "laravel_version": [
+      "@php vendor/bin/testbench about"
     ]
   }
 }
