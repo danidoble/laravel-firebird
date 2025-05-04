@@ -42,7 +42,7 @@ class FirebirdGrammar extends Grammar
      */
     public function compileTableExists($schema, $table): string
     {
-        if(App::version() < 12){
+        if(App::version() < 12 && is_null($table)){
             $table = $schema;
         }
         $table = str_replace('"', "'", $this->wrapTable($table));
@@ -67,7 +67,7 @@ class FirebirdGrammar extends Grammar
      */
     public function compileColumns($schema = null, $table = null): string
     {
-        if(App::version() < 12){
+        if(App::version() < 12 && is_null($table)){
             $table = $schema;
         }
         return 'select trim(trailing from rdb$field_name) as "name" '

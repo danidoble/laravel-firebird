@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Schema;
 uses(TestCase::class);
 
 it('has table', function () {
+    //dump(Schema::hasTable('foo'));
     Schema::dropIfExists('foo');
+    //dd(Schema::hasTable('foo'));
 
     expect(Schema::hasTable('users'))->toBeTrue()
         ->and(Schema::hasTable('foo'))->toBeFalse();

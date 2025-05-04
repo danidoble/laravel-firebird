@@ -20,7 +20,7 @@ jobs:
         os: [ubuntu-latest]
         php: [ 8.1, 8.2, 8.3, 8.4 ]
         laravel: ['10.*', '11.*', '12.*']
-        stability: [prefer-lowest, prefer-stable]
+        stability: [prefer-stable]
         firebird: [v5.0, v4.0, v3.0, v2.5.9-sc]
         include:
           - laravel: 10.*
