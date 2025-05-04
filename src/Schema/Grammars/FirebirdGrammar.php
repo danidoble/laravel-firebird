@@ -27,7 +27,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine the tables.
      */
-    public function compileTables($schema): string
+    public function compileTables($schema = null): string
     {
         return 'select trim(trailing from rdb$relation_name) as "name" '
             .'from rdb$relations '
@@ -41,13 +41,15 @@ class FirebirdGrammar extends Grammar
      */
     public function compileTableExists($schema, $table): string
     {
-        return 'select rdb$relation_name from rdb$relations where rdb$relation_name = ?';
+        $table = str_replace('"', "'", $this->wrapTable($table));
+
+        return 'select rdb$relation_name from rdb$relations where rdb$relation_name = '.$table;
     }
 
     /**
      * Compile the query to determine the views.
      */
-    public function compileViews($schema): string
+    public function compileViews($schema = null): string
     {
         return 'select trim(trailing from rdb$relation_name) as "name", '
             .'rdb$view_source as "definition" '
@@ -59,7 +61,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile the query to determine the columns.
      */
-    public function compileColumns($schema, $table): string
+    public function compileColumns($schema = null, $table = null): string
     {
         return 'select trim(trailing from rdb$field_name) as "name" '
             .'from rdb$relation_fields '
@@ -107,7 +109,7 @@ class FirebirdGrammar extends Grammar
 
         return sprintf(
             "execute block as begin if (exists(%s)) then execute statement '%s'; end",
-            str_replace('?', $table, $this->compileTableExists(null, null)), // Replace the ? character with the table name.
+            str_replace('?', $table, $this->compileTableExists(null, $blueprint)), // Replace the ? character with the table name.
             $this->compileDrop($blueprint, $command)
         );
     }

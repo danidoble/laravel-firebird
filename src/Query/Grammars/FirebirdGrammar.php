@@ -6,7 +6,6 @@ namespace Danidoble\Firebird\Query\Grammars;
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\Grammars\Grammar;
-use Illuminate\Database\Query\JoinLateralClause;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -229,7 +228,7 @@ class FirebirdGrammar extends Grammar
     /**
      * Compile a "lateral join" clause.
      */
-    public function compileJoinLateral(JoinLateralClause $join, string $expression): string
+    public function compileJoinLateral($join, string $expression): string
     {
         return trim("{$join->type} join lateral {$expression} on true");
     }
@@ -244,11 +243,11 @@ class FirebirdGrammar extends Grammar
 
     public function whereDate(Builder $query, $where): string
     {
-        return $this->dateBasedWhere('YEAR', $query, $where);
+        return $this->dateBasedWhere('date', $query, $where);
     }
 
     public function whereTime(Builder $query, $where): string
     {
-        return $this->dateBasedWhere('HOUR', $query, $where);
+        return $this->dateBasedWhere('time', $query, $where);
     }
 }

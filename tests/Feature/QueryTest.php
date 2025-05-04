@@ -405,9 +405,6 @@ it('can filter where not null', function () {
 });
 
 it('can filter where date', function () {
-    // @phpstan-ignore-next-line
-    $this->markTestSkipped('The necessary grammar for whereDate() has not been implemented.');
-
     Order::factory()->count(10)->create();
 
     $results = DB::table('orders')
@@ -418,9 +415,6 @@ it('can filter where date', function () {
 });
 
 it('can filter where time', function () {
-    // @phpstan-ignore-next-line
-    $this->markTestSkipped('The necessary grammar for whereTime() has not been implemented.');
-
     Order::factory()->count(10)->create();
 
     $results = DB::table('orders')
