@@ -38,6 +38,7 @@ driver:
         'password' => env('DB_PASSWORD', 'masterkey'),
         'charset'  => env('DB_CHARSET', 'UTF8'),
         'role'     => null,
+        'legacy_limit_and_offset' => true, // for Firebird 3.0 and above set to false
     ],
 
 ],

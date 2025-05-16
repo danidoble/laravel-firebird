@@ -238,6 +238,9 @@ class FirebirdGrammar extends Grammar
      */
     protected function usesLegacyLimitAndOffset(): bool
     {
+        if(config('database.firebird.legacy_limit_and_offset', true)) {
+            return config('database.firebird.legacy_limit_and_offset', true);
+        }
         return version_compare($this->connection->getServerVersion(), '3.0.0', '<');
     }
 
